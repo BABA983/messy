@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pdf-js demo</title>
+    <style>
+      body,
+      #navigation_controls,
+      #zoom_controls {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      #canvas_container {
+        width: 800px;
+        height: 450px;
+        overflow: auto;
+      }
+      #canvas_container {
+        background: #333;
+        text-align: center;
+        border: solid 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="pdf_viewer">
+      <div id="canvas_container">
+        <canvas id="pdf_renderer"></canvas>
+      </div>
+
+      <div id="navigation_controls">
+        <button id="previous">Previous</button>
+        <input id="current_page" value="1" type="number" />
+        <button id="next">Next</button>
+      </div>
+
+      <div id="zoom_controls">
+        <button id="zoom_in">+</button>
+        <button id="zoom_out">-</button>
+      </div>
+    </div>
+  </body>
+  <script src="./pdf.min.js"></script>
+  <script>
+    class MyPDF {
+      _pdf = null;
+      currentPage = 1;
+      zoom = 1;
+      x = 0;
+      y = 0;
+      width = 235;
+      height = 20;
+      constructor(pdf) {
+        this._pdf = pdf;
+      }
+    }
+    let myPdf = null;
+
+    async function getPDF() {
+      const pdf = await pdfjsLib.getDocument('./test.pdf').promise;
+      myPdf = new MyPDF(pdf);
+      render();
+    }
+    getPDF();
+    async function render() {
+      const page = await myPdf._pdf.getPage(myPdf.currentPage);
+      const canvas = document.getElementById('pdf_renderer');
+      const ctx = canvas.getContext('2d');
+
+      const viewport = page.getViewport({ scale: myPdf.zoom });
+      const bsr =
+        ctx.webkitBackingStorePixelRatio ||
+        ctx.mozBackingStorePixelRatio ||
+        ctx.msBackingStorePixelRatio ||
+        ctx.oBackingStorePixelRatio ||
+        ctx.backingStorePixelRatio ||
+        1;
+      const dpr = window.devicePixelRatio || 1;
+      const ratio = dpr / bsr;
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      // ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      ctx.translate(ratio, ratio);
+
+      // myPdf.x = Math.random() * viewport.width - myPdf.width;
+      // myPdf.y = Math.random() * viewport.height - myPdf.height;
+
+      await page.render({
+        canvasContext: ctx,
+        viewport: viewport,
+      });
+      ctx.strokeStyle = 'red';
+      ctx.strokeRect(
+        myPdf.x + 180 * myPdf.zoom,
+        myPdf.y + 80 * myPdf.zoom,
+        myPdf.width * myPdf.zoom,
+        myPdf.height * myPdf.zoom
+      );
+    }
+    document.getElementById('previous').addEventListener('click', (e) => {
+      if (myPdf._pdf == null || myPdf.currentPage == 1) return;
+
+      myPdf.currentPage -= 1;
+      document.getElementById('current_page').value = myPdf.currentPage;
+      render();
+    });
+    document.getElementById('next').addEventListener('click', (e) => {
+      if (
+        myPdf._pdf == null ||
+        myPdf.currentPage > myPdf._pdf._pdfInfo.numPages
+      )
+        return;
+
+      myPdf.currentPage += 1;
+      document.getElementById('current_page').value = myPdf.currentPage;
+      render();
+    });
+    document
+      .getElementById('current_page')
+      .addEventListener('keypress', (e) => {
+        if (myPdf._pdf == null) return;
+
+        var code = e.keyCode ? e.keyCode : e.which;
+
+        if (code == 13) {
+          var desiredPage =
+            document.getElementById('current_page').valueAsNumber;
+
+          if (desiredPage >= 1 && desiredPage <= myPdf._pdf._pdfInfo.numPages) {
+            myPdf.currentPage = desiredPage;
+            document.getElementById('current_page').value = desiredPage;
+            render();
+          }
+        }
+      });
+    document.getElementById('zoom_in').addEventListener('click', (e) => {
+      if (myPdf._pdf == null) return;
+      myPdf.zoom += 0.5;
+
+      render();
+    });
+    document.getElementById('zoom_out').addEventListener('click', (e) => {
+      if (myPdf._pdf == null) return;
+      myPdf.zoom -= 0.5;
+
+      render();
+    });
+  </script>
+</html>
