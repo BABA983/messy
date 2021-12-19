@@ -178,3 +178,15 @@ type parse<
   : never;
 
 type testParse = parse<"add(10,20)">;
+
+type FilterNumberProp<T extends Object> = {
+  [Key in keyof T]: T[Key] extends number ? T[Key] : never;
+}[keyof T];
+
+type testFilterNumberProp = FilterNumberProp<{
+  a: 1;
+  b: "2";
+  c: 3;
+  d: {};
+  e: ["1"];
+}>;
