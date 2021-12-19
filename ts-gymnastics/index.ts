@@ -121,3 +121,60 @@ type ParseFunctionName<
   : never;
 
 type testParseFunctionName = ParseFunctionName<"getList(1,10)">;
+
+type Brackets = "(" | ")";
+type ParseBrackets<SourceStr> =
+  SourceStr extends `${infer PrefixChar}${infer RestStr}`
+    ? PrefixChar extends Brackets
+      ? StoreParseResult<PrefixChar, RestStr>
+      : never
+    : never;
+
+type NumChars = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
+
+type ParseNum<
+  SourceStr extends string,
+  Res extends string = ""
+> = SourceStr extends `${infer PrefixChar}${infer RestStr}`
+  ? PrefixChar extends NumChars
+    ? ParseNum<RestStr, `${Res}${PrefixChar}`>
+    : StoreParseResult<Res, SourceStr>
+  : never;
+
+type ParseComma<SourceStr extends string> =
+  SourceStr extends `${infer PrefixChar}${infer RestStr}`
+    ? PrefixChar extends ","
+      ? StoreParseResult<",", RestStr>
+      : never
+    : never;
+
+type parse<
+  SourceStr extends string,
+  Res extends string = ""
+> = ParseFunctionName<SourceStr, Res> extends StoreParseResult<
+  infer FunctionName,
+  infer Rest1
+>
+  ? ParseBrackets<Rest1> extends StoreParseResult<
+      infer BracketChar,
+      infer Rest2
+    >
+    ? ParseNum<Rest2> extends StoreParseResult<infer Num1, infer Rest3>
+      ? ParseComma<Rest3> extends StoreParseResult<infer CommaChar, infer Rest4>
+        ? ParseNum<Rest4> extends StoreParseResult<infer Num2, infer Rest5>
+          ? ParseBrackets<Rest5> extends StoreParseResult<
+              infer BracketChar2,
+              infer Rest6
+            >
+            ? {
+                functionName: FunctionName;
+                params: [Num1, Num2];
+              }
+            : never
+          : never
+        : never
+      : never
+    : never
+  : never;
+
+type testParse = parse<"add(10,20)">;
