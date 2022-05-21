@@ -89,6 +89,7 @@ function cloneReg(target) {
   result.lastIndex = target.lastIndex;
 
   return result;
+  // return new RegExp(target);
 }
 /**
  * 我们可以通过 prototype 来区分下箭头函数和普通函数，箭头函数是没有 prototype 的。
