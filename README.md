@@ -22,3 +22,10 @@ syntax-cli --grammar parser/eval-grammar.bnf --mode LALR1 --parse 'foo' tokenize
 syntax-cli --grammar parser/eval-grammar.bnf --mode LALR1 --parse '(begin (var x 10) (var y 20) (+ x y))' tokenize
 syntax-cli --grammar parser/eval-grammar.bnf --mode LALR1 --output parser/eval-parser.js
 ```
+
+## node-stream-demo
+generate 4GB SHA-256 hash of the dummy file
+
+On macOS: mkfile -n 4g 4gb_file
+On Linux: xfs_mkfile 4096m 4gb_file
+
