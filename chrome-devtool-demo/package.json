@@ -1,0 +1,8 @@
+{
+	"dependencies": {
+		"chrome-devtools-frontend": "1.0.672485",
+		"chrome-remote-interface": "^0.31.3",
+		"serve": "^14.0.1",
+		"ws": "^8.8.1"
+	}
+}
