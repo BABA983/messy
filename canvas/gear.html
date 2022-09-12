@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <!-- https://github.com/Molunerfinn/Gear-system -->
+  <body>
+    <canvas id="myCanvas" width="500" height="500"></canvas>
+  </body>
+  <script>
+    function deg2rad(d) {
+      return (2 * Math.PI * d) / 360;
+    }
+
+    function rad2deg(r) {
+      return (360 * r) / (2 * Math.PI);
+    }
+    function distance(x1, y1, x2, y2) {
+      return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
+    }
+    var Gear = function (
+      x,
+      y,
+      connectionRadius,
+      teeth,
+      fillStyle,
+      strokeStyle
+    ) {
+      // 齿轮参数
+      this.x = x;
+      this.y = y;
+      this.connectionRadius = connectionRadius;
+      this.teeth = teeth;
+
+      // 渲染参数
+      this.fillStyle = fillStyle;
+      this.strokeStyle = strokeStyle;
+
+      // 计算属性
+      this.diameter = teeth * 4 * connectionRadius; // 每个轮齿是通过两个相连的半圆组成的
+      this.radius = this.diameter / (2 * Math.PI); // D = 2 PI r
+
+      // 运动属性
+      this.phi0 = 0; // 起始角度
+      this.angularSpeed = 0; // 角速度cond
+      this.createdAt = new Date(); // 时间戳
+    };
+    Gear.prototype.render = function (context) {
+      // 更新旋转角
+      var ellapsed = new Date() - this.createdAt;
+      var phiDegrees = this.angularSpeed * (ellapsed / 1000);
+      var phi = this.phi0 + deg2rad(phiDegrees); // 当前的角度
+
+      // 构建渲染参数
+      context.fillStyle = this.fillStyle;
+      context.strokeStyle = this.strokeStyle;
+      context.lineCap = 'round';
+      context.lineWidth = 1;
+
+      // 绘制齿轮轮身
+      context.beginPath();
+      for (var i = 0; i < this.teeth * 2; i++) {
+        var alpha = 2 * Math.PI * (i / (this.teeth * 2)) + phi;
+        // 计算每个轮齿的位置
+        var x = this.x + Math.cos(alpha) * this.radius;
+        var y = this.y + Math.sin(alpha) * this.radius;
+        // 画一个半圆，随着alpha旋转
+        // 在每个奇数齿，画相反的半圆
+        context.arc(
+          x,
+          y,
+          this.connectionRadius,
+          -Math.PI / 2 + alpha,
+          Math.PI / 2 + alpha,
+          i % 2 == 0
+        );
+      }
+      context.fill();
+      context.stroke();
+
+      // 画中心的圆
+      context.beginPath();
+      context.arc(this.x, this.y, this.connectionRadius, 0, 2 * Math.PI, true);
+      context.fill();
+      context.stroke();
+    };
+
+    // Gear.prototype.connect = function (x, y) {
+    //   var r = this.radius;
+    //   var dist = distance(x, y, this.x, this.y); // 计算两个齿轮之间的距离
+
+    //   // 要创建一个新的齿轮我们必须知道它的齿数
+    //   var newRadius = Math.max(dist - r, 10);
+    //   var newDiam = newRadius * 2 * Math.PI;
+    //   var newTeeth = Math.round(newDiam / (4 * this.connectionRadius)); // 齿数必须是整数
+
+    //   // 创建一个新的齿轮
+    //   var newGear = new Gear(
+    //     x,
+    //     y,
+    //     this.connectionRadius,
+    //     newTeeth,
+    //     this.fillStyle,
+    //     this.strokeStyle
+    //   );
+
+    //   // 调整新齿轮的旋转方向使其与原来的方向相反
+    //   var gearRatio = this.teeth / newTeeth;
+    //   newGear.angularSpeed = -this.angularSpeed * gearRatio;
+    //   return newGear;
+    // };
+
+    Gear.prototype.connect = function (x, y) {
+      var r = this.radius;
+      var dist = distance(x, y, this.x, this.y);
+
+      // 要创建一个新的齿轮我们必须知道它的齿数
+      var newRadius = Math.max(dist - r, 10);
+      var newDiam = newRadius * 2 * Math.PI;
+      var newTeeth = Math.round(newDiam / (4 * this.connectionRadius));
+
+      // 计算新齿轮的实际位置，使其能够于该齿轮啮合
+      var actualDiameter = newTeeth * 4 * this.connectionRadius;
+      var actualRadius = actualDiameter / (2 * Math.PI);
+      var actualDist = r + actualRadius; // 距离该齿轮中心的实际距离
+      var alpha = Math.atan2(y - this.y, x - this.x); // 该齿轮中心和(x,y)的角度值
+      var actualX = this.x + Math.cos(alpha) * actualDist;
+      var actualY = this.y + Math.sin(alpha) * actualDist;
+
+      // 创建一个新的齿轮
+      var newGear = new Gear(
+        actualX,
+        actualY,
+        this.connectionRadius,
+        newTeeth,
+        this.fillStyle,
+        this.strokeStyle
+      );
+
+      // 调整新齿轮的旋转方向使其与原来的方向相反
+      var gearRatio = this.teeth / newTeeth;
+      newGear.angularSpeed = -this.angularSpeed * gearRatio;
+
+      // 在时间t=0,将此齿轮旋转角度α
+      this.phi0 = alpha + (this.phi0 - alpha); // this.phi0，没啥用，仅供展示。
+      // 同时（t=0)，旋转新齿轮角度（180-α），对着第一个齿轮
+      // 并且加上一半的齿轮旋转使它们的轮齿能够啮合
+      newGear.phi0 =
+        alpha +
+        Math.PI +
+        Math.PI / newTeeth +
+        (this.phi0 - alpha) * (newGear.angularSpeed / this.angularSpeed);
+      newGear.createdAt = this.createdAt; // 当然，还得同步它们的时钟
+
+      return newGear;
+    };
+
+    var canvas = document.getElementById('myCanvas');
+    var context = canvas.getContext('2d');
+    var W = canvas.width;
+    var H = canvas.height;
+    var gear = new Gear(W / 2, H / 2, 5, 12, 'white', 'rgba(61, 142, 198, 1)');
+    gear.angularSpeed = 36;
+    var gear2 = gear.connect(3 * (W / 4), H / 2);
+
+    // 这是一个辅助函数，用于转换鼠标在canvas内部的坐标值
+    function getMousePos(canvas, evnt) {
+      var rect = canvas.getBoundingClientRect();
+      return {
+        x: evnt.clientX - rect.left,
+        y: evnt.clientY - rect.top,
+      };
+    }
+
+    canvas.onmousemove = function (evnt) {
+      var pos = getMousePos(canvas, evnt);
+      var x = Math.min(0.7 * W, Math.max(0.3 * W, pos.x));
+      var y = Math.min(0.7 * H, Math.max(0.3 * H, pos.y));
+      gear2 = gear.connect(x, y);
+    };
+    setInterval(function () {
+      canvas.width = canvas.width;
+      gear.render(context);
+      gear2.render(context);
+    }, 20);
+  </script>
+</html>
