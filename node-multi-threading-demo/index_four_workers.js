@@ -1,31 +1,18 @@
 const express = require('express');
 const { Worker } = require('worker_threads');
-const path = require('path');
 
 const app = express();
 const port = process.env.PORT || 3000;
-const THREAD_COUNT = 1;
+const THREAD_COUNT = 4;
 
-function test() {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      resolve('done');
-    }, 1000);
-  });
-}
-(async () => {
-  console.log(1);
-  console.log(await test());
-  console.log(2);
-})();
-
+// time curl http://localhost:3000/blocking
 app.get('/non-blocking/', (req, res) => {
   res.status(200).send('This page is non-blocking');
 });
 
 function createWorker() {
   return new Promise(function (resolve, reject) {
-    const worker = new Worker(path.join(__dirname, 'worker.js'), {
+    const worker = new Worker('./four_workers.js', {
       workerData: { thread_count: THREAD_COUNT },
     });
     worker.on('message', (data) => {
